@@ -1,0 +1,11 @@
+--- a/drivers/mtd/ubi/nvmem.c
++++ b/drivers/mtd/ubi/nvmem.c
+@@ -164,7 +164,7 @@
+ 
+ static int __init ubi_nvmem_init(void)
+ {
+-	return ubi_register_volume_notifier(&nvmem_notifier, 0);
++	return ubi_register_volume_notifier(&nvmem_notifier, 1);
+ }
+ 
+ static void __exit ubi_nvmem_exit(void)

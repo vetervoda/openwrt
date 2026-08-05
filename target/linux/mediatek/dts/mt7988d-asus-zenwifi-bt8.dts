@@ -28,6 +28,8 @@
 			compatible = "fixed-partitions";
 			#address-cells = <1>;
 			#size-cells = <1>;
+			
+			/delete-node/ partition@200000;
 
 			partition@0 {
 				reg = <0x0 0x400000>;

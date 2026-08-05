@@ -273,10 +273,15 @@
 	};
 };
 
-/* Контроллер 11300000 (pcie0) - primary link чипа mt7996 (0x7990), здесь nvmem/eeprom */
+/* Контроллер 11300000 (pcie0) пуст, отключаем */
 &pcie0 {
+	status = "disabled";
+};
+
+/* Рабочий контроллер 11290000 (pcie3) с монтированным mt7996 */
+&pcie3 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pcie0_pins>;
+	pinctrl-0 = <&pcie3_pins>;
 	reset-gpios = <&pio 7 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 
@@ -315,14 +320,6 @@
 			};
 		};
 	};
-};
-
-/* Контроллер 11290000 (pcie3) - hif2 link (0x7991), драйвер находит по PCI ID автоматически */
-&pcie3 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pcie3_pins>;
-	reset-gpios = <&pio 7 GPIO_ACTIVE_HIGH>;
-	status = "okay";
 };
 
 &pio {

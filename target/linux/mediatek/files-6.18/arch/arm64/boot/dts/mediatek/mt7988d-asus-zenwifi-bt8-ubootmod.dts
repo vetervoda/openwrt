@@ -22,3 +22,7 @@
 	nvmem-cell-names = "mac-address";
 };
 
+&gmac2 {
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
+};
