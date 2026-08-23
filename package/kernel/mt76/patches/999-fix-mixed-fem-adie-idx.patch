@@ -1,0 +1,11 @@
+--- a/mt7996/init.c
++++ b/mt7996/init.c
+@@ -1239,7 +1239,7 @@
+ 		adie_idx = (val & MT_PAD_GPIO_ADIE_SINGLE) ? 0 : 1;
+ 		adie_comb = u32_get_bits(val, MT_PAD_GPIO_ADIE_COMB_7992);
+ 	} else {
+-		adie_idx = 0;
++		adie_idx = 1; /* fix mixed FEM check, from LKML Chukun Pan Nov 2025 */
+ 		adie_comb = u32_get_bits(val, MT_PAD_GPIO_ADIE_COMB);
+ 	}
+ 

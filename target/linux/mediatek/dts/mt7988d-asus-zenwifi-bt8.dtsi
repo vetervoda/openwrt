@@ -296,6 +296,10 @@
 
 			mediatek,disable-aspm;
 
+			/* eagle + 7988d topology (dual PCIe hif/hif2, see mtk-openwrt-feeds
+			 * commit 1b5db1016559 by Rex Lu, dts-88d-option-type-2-support) */
+			option_type = <2>;
+
 			band@0 {
 				reg = <0>;
 				nvmem-cells = <&macaddr_factory_fffee>;

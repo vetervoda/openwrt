@@ -1,18 +1,19 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mt76
-PKG_RELEASE=1
+PKG_RELEASE=3
 
 PKG_LICENSE:=BSD-3-Clause-Clear
 PKG_LICENSE_FILES:=
 
 PKG_SOURCE_URL:=https://github.com/openwrt/mt76
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_DATE:=2026-07-01
-PKG_SOURCE_VERSION:=59676919ea408b0b13a9d23f2e2e1a1ab407fba1
-PKG_MIRROR_HASH:=8a6dc6dac37ed56fcbfd874359f5c25acb65bcfaa795d50494cba17c98405dd5
+PKG_SOURCE_DATE:=2026-08-15
+PKG_SOURCE_VERSION:=b2704cf5a4068b672bf47ad5bf6b4802b6770a90
+PKG_MIRROR_HASH:=a33428cb55ef6dcaf0a9351df57a75291438aa5f8428fac8da98ddb9f24050ab
 
 PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
+
 PKG_USE_NINJA:=0
 PKG_BUILD_PARALLEL:=1
 
@@ -32,6 +33,12 @@ STAMP_CONFIGURED_DEPENDS := $(STAGING_DIR)/usr/include/mac80211-backport/backpor
 include $(INCLUDE_DIR)/kernel.mk
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
+
+define Build/Prepare
+	$(call Build/Prepare/Default)
+	$(CP) $(CURDIR)/files/mt7996_wm_233.bin $(PKG_BUILD_DIR)/firmware/mt7996/mt7996_wm_233.bin
+	$(CP) $(CURDIR)/files/mt7996_wa_233.bin $(PKG_BUILD_DIR)/firmware/mt7996/mt7996_wa_233.bin
+endef
 
 CMAKE_SOURCE_DIR:=$(PKG_BUILD_DIR)/tools
 CMAKE_BINARY_DIR:=$(PKG_BUILD_DIR)/tools
@@ -323,6 +330,7 @@ define KernelPackage/mt7996e
   	   +@KERNEL_RELAY +@DRIVER_11BE_SUPPORT
   FILES:= $(PKG_BUILD_DIR)/mt7996/mt7996e.ko
   AUTOLOAD:=$(call AutoProbe,mt7996e)
+  MODPARAMS:=wed_enable=1
 endef
 
 define KernelPackage/mt7990-firmware

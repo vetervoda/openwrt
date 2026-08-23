@@ -1,0 +1,48 @@
+From: Rex Lu <rex.lu@mediatek.com>
+Date: Fri, 27 Sep 2024 14:17:12 +0800
+Subject: [PATCH] net: ethernet: mtk_wed: refactor mtk_wed_attach for support wed2
+
+for mt7988d, pcie will bootup with pcie0 and pcie2.
+pcie0 => wed0
+pcie2 => wed2
+
+Ported from MediaTek's mtk-openwrt-feeds
+(commit d8194f5755013d6714eeb5454c522c72c0260536, "refactor
+mtk_wed_attach for support wed2"). The upstream mtk_wed_attach()
+unconditionally rejected any PCI domain > 1 via
+pci_domain_nr(dev->wlan.pci_dev->bus) > 1, which prevented WED from
+ever attaching on boards where hif2 sits on PCI domain 2 (dual-PCIe
+"eagle + 7988d" topology, e.g. ASUS ZenWiFi BT8 / MT7988D). Also
+collapses the AMSDU HIFTXD_SRC field to a binary 0/1 index instead of
+using the raw hw->index, matching the same 3-domain topology.
+
+Verified on ASUS ZenWiFi BT8 (MT7988D, hif on PCI domain 0, hif2 on
+PCI domain 2): without this patch, insmod mt7996e.ko wed_enable=1
+attaches wed0 successfully but silently fails to attach wed2 (blocked
+by the domain check with the module falling into a broken half-WED
+state on some paths). With this patch, both wed0 and wed2 attach
+successfully and the device continues to operate normally with WED
+enabled, confirmed via serial console across multiple reboots.
+
+--- a/drivers/net/ethernet/mediatek/mtk_wed.c	2026-08-23 13:13:10.609761011 +0300
++++ b/drivers/net/ethernet/mediatek/mtk_wed.c	2026-08-22 15:50:27.193500675 +0300
+@@ -618,7 +618,7 @@
+ 
+ 	/* init partial amsdu offload txd src */
+ 	wed_set(dev, MTK_WED_AMSDU_HIFTXD_CFG,
+-		FIELD_PREP(MTK_WED_AMSDU_HIFTXD_SRC, dev->hw->index));
++		FIELD_PREP(MTK_WED_AMSDU_HIFTXD_SRC, (dev->hw->index ? 1: 0)));
+ 
+ 	/* init qmem */
+ 	wed_set(dev, MTK_WED_AMSDU_PSE, MTK_WED_AMSDU_PSE_RESET);
+@@ -2411,9 +2411,7 @@
+ 	RCU_LOCKDEP_WARN(!rcu_read_lock_held(),
+ 			 "mtk_wed_attach without holding the RCU read lock");
+ 
+-	if ((dev->wlan.bus_type == MTK_WED_BUS_PCIE &&
+-	     pci_domain_nr(dev->wlan.pci_dev->bus) > 1) ||
+-	    !try_module_get(THIS_MODULE))
++	if (!try_module_get(THIS_MODULE))
+ 		ret = -ENODEV;
+ 
+ 	rcu_read_unlock();

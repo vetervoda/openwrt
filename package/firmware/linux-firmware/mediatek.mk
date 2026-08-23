@@ -122,6 +122,7 @@ define Package/mt7988-wo-firmware/install
 	$(INSTALL_DATA) \
 		$(PKG_BUILD_DIR)/mediatek/mt7988/mt7988_wo_0.bin \
 		$(PKG_BUILD_DIR)/mediatek/mt7988/mt7988_wo_1.bin \
+		$(CURDIR)/files/mt7988_wo_2.bin \
 		$(1)/lib/firmware/mediatek/mt7988
 endef
 $(eval $(call BuildPackage,mt7988-wo-firmware))

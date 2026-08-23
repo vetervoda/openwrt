@@ -1,0 +1,67 @@
+From: Valera Kozlov <valera.kozlov19@gmail.com>
+Date: Sun, 23 Aug 2026 02:30:00 +0300
+Subject: [PATCH] net: ethernet: mtk_wed: add MT7988 WO2 firmware support
+
+mtk_wed_mcu_load_firmware() only distinguished two cases for MT7988
+(wo->hw->index ? WO1 : WO0), silently loading WO1 for any index > 0,
+including index 2 (the third WED unit, reachable on boards where hif2
+sits on PCI domain 2 -- see companion patch
+999-wed-mtk_wed-refactor-attach-for-support-wed2.patch). No WO2
+firmware file exists in linux-firmware or the mtk-openwrt-feeds vendor
+feed for this platform.
+
+Add an explicit MT7988_FIRMWARE_WO2 define and a proper switch over
+wo->hw->index so index 2 loads its own firmware file instead of
+silently reusing WO1's.
+
+The firmware binary itself (mt7988_wo_2.bin) was extracted from the
+official ASUS ZenWiFi BT8 factory firmware (v3.0.0.6.102_58407) and
+is packaged separately via package/firmware/linux-firmware. WO0 and
+WO1 in that same factory firmware are byte-for-byte identical (MD5)
+to the upstream linux-firmware mt7988_wo_0.bin/mt7988_wo_1.bin,
+confirming WO2 is sourced from the same official MediaTek SDK release
+rather than a device-specific or incompatible build.
+
+Verified on ASUS ZenWiFi BT8 (MT7988D): with this patch and the
+companion attach-path fix, wed device 2 attaches successfully and the
+router operates normally with wed_enable=1 persisted across reboots.
+
+--- a/drivers/net/ethernet/mediatek/mtk_wed_wo.h	2026-08-23 13:13:10.615864219 +0300
++++ b/drivers/net/ethernet/mediatek/mtk_wed_wo.h	2026-08-22 02:58:32.618429428 +0300
+@@ -93,6 +93,7 @@
+ #define MT7986_FIRMWARE_WO1	"mediatek/mt7986_wo_1.bin"
+ #define MT7988_FIRMWARE_WO0	"mediatek/mt7988/mt7988_wo_0.bin"
+ #define MT7988_FIRMWARE_WO1	"mediatek/mt7988/mt7988_wo_1.bin"
++#define MT7988_FIRMWARE_WO2	"mediatek/mt7988/mt7988_wo_2.bin"
+ 
+ #define MTK_WO_MCU_CFG_LS_BASE				0
+ #define MTK_WO_MCU_CFG_LS_HW_VER_ADDR			(MTK_WO_MCU_CFG_LS_BASE + 0x000)
+--- a/drivers/net/ethernet/mediatek/mtk_wed_mcu.c	2026-08-23 13:13:10.616794761 +0300
++++ b/drivers/net/ethernet/mediatek/mtk_wed_mcu.c	2026-08-22 02:58:32.619524928 +0300
+@@ -390,8 +390,19 @@
+ 						: MT7986_FIRMWARE_WO0;
+ 		break;
+ 	case 3:
+-		fw_name = wo->hw->index ? MT7988_FIRMWARE_WO1
+-					: MT7988_FIRMWARE_WO0;
++		switch (wo->hw->index) {
++		case 0:
++			fw_name = MT7988_FIRMWARE_WO0;
++			break;
++		case 1:
++			fw_name = MT7988_FIRMWARE_WO1;
++			break;
++		case 2:
++			fw_name = MT7988_FIRMWARE_WO2;
++			break;
++		default:
++			return -EINVAL;
++		}
+ 		break;
+ 	default:
+ 		return -EINVAL;
+@@ -464,3 +475,4 @@
+ MODULE_FIRMWARE(MT7986_FIRMWARE_WO1);
+ MODULE_FIRMWARE(MT7988_FIRMWARE_WO0);
+ MODULE_FIRMWARE(MT7988_FIRMWARE_WO1);
++MODULE_FIRMWARE(MT7988_FIRMWARE_WO2);

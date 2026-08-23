@@ -1,0 +1,46 @@
+wifi: mt76: mt7996: fix chain config for 2x2/3x3/3x3 (233) FEM variant
+
+Factory-programmed efuse on some mixed-FEM designs reports the
+antenna configuration as 4x4:4SS instead of the board's actual
+2x2/3x3/3x3 layout, which mt7996_mcu_set_eeprom() then propagates
+into the live EEPROM buffer sent to firmware. Override the 8 bytes
+at EEPROM offset 0x190 with the correct TYPE_233 values when this
+mismatch is detected, so firmware initializes chains/streams to
+match the real hardware rather than the misreported efuse value.
+
+Gated to the specific board (ASUS ZenWiFi BT8 / RT-BE14000) via DT
+compatible string: we have only confirmed the factory-wrong efuse
+signature on this exact unit, and have not been able to verify the
+precise "before" byte pattern to key off of instead. Until that is
+confirmed on other hardware, this must not run unconditionally on
+every mt7996 device using this driver.
+
+--- a/mt7996/mcu.c	2026-08-21 14:28:12.559043584 +0300
++++ b/mt7996/mcu.c	2026-08-23 19:18:33.315332668 +0300
+@@ -5,6 +5,7 @@
+ 
+ #include <linux/firmware.h>
+ #include <linux/fs.h>
++#include <linux/of.h>
+ #include "mt7996.h"
+ #include "mcu.h"
+ #include "mac.h"
+@@ -4550,6 +4551,18 @@
+ 			     FIELD_PREP(PAGE_IDX_MASK, i) | EE_FORMAT_WHOLE;
+ 		req.buf_len = cpu_to_le16(eep_len);
+ 
++		if (i == 0 && of_machine_is_compatible("asus,zenwifi-bt8-ubootmod")) {
++			/* ASUS ZenWiFi BT8 (BE14000): board is 2x2/3x3/3x3 (233),
++			 * but factory efuse MT_EE_WIFI_CONF claims 4x4:4SS (444).
++			 * Override with official mt7996_eeprom_233.bin reference
++			 * values (path/stream/FEM) from mtk-openwrt-feeds.
++			 * Gated to this specific board via DT compatible string --
++			 * we have not confirmed the exact factory-wrong efuse
++			 * signature on other hardware, so this must not run
++			 * unconditionally on other mt7996 devices. */
++			memcpy(eep + 0x190, "\x11\x13\x1b\x1a\x13\x1b\x08\x08", 8);
++		}
++
+ 		skb_put_data(skb, &req, sizeof(req));
+ 		skb_put_data(skb, eep, eep_len);
+ 
